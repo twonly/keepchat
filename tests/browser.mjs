@@ -1,0 +1,155 @@
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import {readFile, writeFile, mkdir, mkdtemp, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {buildHTML} from '../src/archive.js';
+const root = process.cwd();
+await mkdir('output/playwright', {recursive: true});
+const profile = await mkdtemp(path.join(tmpdir(), 'keepchat-test-'));
+const context = await chromium.launchPersistentContext(profile, {channel: 'chromium', headless: true, viewport: {width: 1440, height: 1080}, acceptDownloads: true, args: ['--enable-unsafe-extension-debugging'], ignoreDefaultArgs: ['--disable-extensions']});
+const results = [];
+const fixture = await readFile('tests/fixtures/conversation.html', 'utf8');
+const modernFixture = fixture.replace(/<article /g, '<li style="min-width:768px" ').replace(/<\/article>/g, '</li>').replaceAll('data-turn=', 'data-message-role=').replace(/data-testid="conversation-turn-(\d+)"/g, 'id="modern-$1"').replace('<div class="scroll">', '<ol class="scroll" data-conversation-transcript>').replace('</div></main>', '</ol></main>').replace('<h3>从这三个步骤开始</h3>', '<div class="demo-grid" style="display:grid;grid-template-columns:240px 240px 240px;gap:12px"><span>第一步</span><span>第二步</span><span>第三步</span></div><h3>从这三个步骤开始</h3>');
+const fixtureFont = await readFile('node_modules/playwright-core/lib/vite/traceViewer/codicon.DCmgc-ay.ttf');
+const graphic = '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360"><rect width="1200" height="360" fill="#edf0e6"/><circle cx="1080" cy="60" r="180" fill="#e3e8d9"/><rect x="60" y="74" width="300" height="212" rx="15" fill="#fcfcf7"/><rect x="450" y="74" width="300" height="212" rx="15" fill="#fcfcf7"/><rect x="840" y="74" width="300" height="212" rx="15" fill="#203b31"/><text x="90" y="130" font-size="18" fill="#bc6b48" font-family="Georgia">01 / CONVERSATION</text><text x="480" y="130" font-size="18" fill="#bc6b48" font-family="Georgia">02 / PRESERVE</text><text x="870" y="130" font-size="18" fill="#c9d5bd" font-family="Georgia">03 / SHARE</text><text x="90" y="220" font-size="48" fill="#203b31">对话</text><text x="480" y="220" font-size="48" fill="#203b31">留存</text><text x="870" y="220" font-size="48" fill="#f8f7ef">分享</text><path d="M380 180h45m-12-10 12 10-12 10M770 180h45m-12-10 12 10-12 10" fill="none" stroke="#a7b39b" stroke-width="3"/></svg>';
+const browserCDP = await context.browser().newBrowserCDPSession();
+try {
+  await context.route('https://chatgpt.com/**', async route => {
+    const url = new URL(route.request().url());
+    if (url.pathname === '/fixture-image.svg') return route.fulfill({contentType: 'image/svg+xml', body: graphic});
+    if (url.pathname === '/fixture-font.ttf') return route.fulfill({contentType: 'font/ttf', body: fixtureFont});
+    if (url.pathname === '/missing-image.png') return route.fulfill({status: 404, contentType: 'text/plain', body: 'not found'});
+    return route.fulfill({contentType: 'text/html; charset=utf-8', body: url.pathname === '/s/t_modern' ? modernFixture : fixture});
+  });
+  const {id: extensionID} = await browserCDP.send('Extensions.loadUnpacked', {path: root});
+  const source = await context.newPage();
+  await source.goto('https://chatgpt.com/s/t_keepchat_fixture');
+  await source.locator('.scroll').evaluate(el => { el.scrollTop = 200; });
+  const {targetInfos} = await browserCDP.send('Target.getTargets', {filter: [{type: 'tab', exclude: false}, {exclude: true}]});
+  const targetInfo = targetInfos.find(target => target.url === source.url());
+  assert.ok(targetInfo, JSON.stringify(targetInfos));
+  await browserCDP.send('Extensions.triggerAction', {id: extensionID, targetId: targetInfo.targetId});
+  // Opening the popup URL after invoking the real action also works in headless Chrome.
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionID}/src/popup.html`);
+  // The direct test tab becomes active; re-select the source before asking the popup to refresh.
+  await source.bringToFront();
+  await popup.locator('#refresh').click();
+  await popup.waitForFunction(() => !document.querySelector('#openPreview').disabled, null, {timeout: 10000});
+  assert.match(await popup.locator('#messageCount').innerText(), /6 条消息/);
+  await popup.screenshot({path: 'output/playwright/popup.png', clip: {x: 0, y: 0, width: 380, height: 620}});
+  results.push('Actual unpacked extension + activeTab action + popup inspection');
+  const workbenchPromise = context.waitForEvent('page', {predicate: p => p !== popup});
+  await popup.locator('#openPreview').click();
+  const workbench = await workbenchPromise;
+  await workbench.waitForURL(/export\.html/);
+  const errors = [];
+  workbench.on('pageerror', error => errors.push(error.message));
+  await workbench.waitForFunction(() => !document.querySelector('#downloadHTML').disabled, null, {timeout: 120000});
+  assert.equal(await workbench.locator('#messageCount').innerText(), '7');
+  assert.equal(await workbench.locator('#imageCount').innerText(), '1/2');
+  assert.equal(await source.locator('.scroll').evaluate(el => el.scrollTop), 200);
+  assert.match(await workbench.locator('#warningList').textContent(), /原页面也未能加载图片/);
+  assert.match(await workbench.locator('#warningList').textContent(), /附件/);
+  const frame = workbench.frameLocator('#preview');
+  assert.equal(await frame.locator('pre code').innerText(), 'const keep = (conversation) => {\n  const original = "</script> & 原始内容";\n\n\n  return { ...conversation, original };\n};\n// literal fence: ````');
+  assert.equal(await frame.locator('math').count(), 1);
+  assert.equal(await frame.locator('svg path').count(), 1);
+  assert.equal(await frame.locator('table tr').count(), 4);
+  assert.equal(await frame.locator('img').count(), 1);
+  assert.equal(await frame.locator('img').evaluate(el => el.complete && el.naturalWidth > 0), true);
+  const snapshot = await workbench.locator('#preview').getAttribute('srcdoc');
+  assert.ok(!snapshot.includes('SIDEBAR_PRIVATE_SENTINEL'));
+  assert.ok(!snapshot.includes('PRIVATE_ATTRIBUTE_SENTINEL'));
+  assert.ok(!snapshot.includes('onclick='));
+  assert.ok(!snapshot.includes('javascript:'));
+  assert.ok(!snapshot.includes('<script>'));
+  assert.ok(snapshot.includes('LAZY_LOADED_LAST_MESSAGE'));
+  assert.ok(snapshot.includes('data:font/ttf;base64,'));
+  assert.ok(snapshot.includes('unicode-range: U+EA00-EBFF'));
+  results.push('Long-conversation lazy loading, order, deduplication and original scroll restoration');
+  results.push('Code whitespace, table, MathML, SVG, offline image and explicit missing assets');
+  results.push('Sidebar/private attributes/scripts/unsafe links excluded');
+  await workbench.screenshot({path: 'output/playwright/workbench.png', fullPage: true});
+  await workbench.locator('#mobileView').click();
+  assert.equal(await workbench.locator('#mobileView').getAttribute('aria-pressed'), 'true');
+  await workbench.screenshot({path: 'output/playwright/workbench-mobile.png', fullPage: true});
+  await workbench.locator('#desktopView').click();
+  await workbench.locator('#includeSource').uncheck();
+  assert.ok(!(await workbench.locator('#preview').getAttribute('srcdoc')).includes('查看原对话 ↗'));
+  await workbench.locator('#includeSource').check();
+  await workbench.reload();
+  await workbench.waitForFunction(() => !document.querySelector('#downloadHTML').disabled);
+  assert.match(await workbench.locator('#statusText').innerText(), /恢复本机缓存/);
+  results.push('Mobile preview, source-link preference, independent persistent snapshot');
+  const downloadPromise = workbench.waitForEvent('download', {timeout: 15000});
+  await workbench.locator('#downloadHTML').click();
+  const download = await downloadPromise;
+  await download.saveAs(path.join(root, 'output/playwright/example-conversation.html'));
+  assert.equal(await download.failure(), null);
+  const file = await readFile('output/playwright/example-conversation.html', 'utf8');
+  assert.ok(file.includes('LAZY_LOADED_LAST_MESSAGE'));
+  assert.ok(file.includes('data:image/svg+xml;base64,'));
+  results.push('Real chrome.downloads HTML download');
+  const mdPromise = workbench.waitForEvent('download', {timeout: 15000});
+  await workbench.locator('#downloadMarkdown').click();
+  await (await mdPromise).saveAs(path.join(root, 'output/playwright/example-conversation.md'));
+  assert.ok((await readFile('output/playwright/example-conversation.md', 'utf8')).includes('`````'));
+  results.push('Markdown download with safe fence lengths');
+  const offline = await context.newPage();
+  await context.setOffline(true);
+  await offline.goto('file://' + path.join(root, 'output/playwright/example-conversation.html'));
+  assert.equal(await offline.locator('img').evaluate(el => el.complete && el.naturalWidth > 0), true);
+  assert.equal(await offline.locator('script').count(), 0);
+  await offline.screenshot({path: 'output/playwright/offline.png', fullPage: true});
+  await offline.setViewportSize({width: 390, height: 844});
+  assert.ok(await offline.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  await offline.screenshot({path: 'output/playwright/offline-mobile.png', fullPage: true});
+  await offline.pdf({path: 'output/playwright/example-conversation.pdf', printBackground: true});
+  results.push('Offline file opens with image; mobile fits; Chromium PDF rendering');
+  await context.setOffline(false);
+  await workbench.locator('#clear').click();
+  await workbench.waitForFunction(() => document.querySelector('#title').textContent === '本地预览已清除');
+  assert.equal(await workbench.locator('#downloadHTML').isDisabled(), true);
+  results.push('Explicit local preview cleanup');
+  await source.goto('https://chatgpt.com/s/t_modern');
+  const modern = await workbench.evaluate(async ({url}) => {
+    const tabs = await chrome.tabs.query({});
+    const tab = tabs.find(t => t.url === url);
+    await chrome.scripting.executeScript({target: {tabId: tab.id}, files: ['src/content.js']});
+    const [result] = await chrome.scripting.executeScript({target: {tabId: tab.id}, func: expectedURL => globalThis.keepChat.capture({job: 'modern', expectedURL, scan: false}), args: [url]});
+    return {tab: tab.id, conversation: result.result};
+  }, {url: source.url()});
+  assert.equal(modern.conversation.messages.length, 6);
+  assert.equal(modern.conversation.messages[0].role, 'user');
+  assert.equal(modern.conversation.messages[1].role, 'assistant');
+  await writeFile('output/playwright/modern.html', buildHTML(modern.conversation));
+  await offline.goto('file://' + path.join(root, 'output/playwright/modern.html'));
+  assert.ok(await offline.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  results.push('New /s/ transcript markup, correct roles and responsive grid layout');
+  const cancelled = await workbench.evaluate(async ({tab, url}) => {
+    const pending = chrome.scripting.executeScript({target: {tabId: tab}, func: async expectedURL => {
+      try { await globalThis.keepChat.capture({job: 'cancel-test', expectedURL}); return 'unexpected success'; }
+      catch (error) { return error.message; }
+    }, args: [url]});
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await chrome.scripting.executeScript({target: {tabId: tab}, func: () => globalThis.keepChat.cancel('cancel-test')});
+    return (await pending)[0].result;
+  }, {tab: modern.tab, url: source.url()});
+  assert.match(cancelled, /已取消读取/);
+  await source.evaluate(() => { const stop = document.createElement('button'); stop.dataset.testid = 'stop-button'; document.body.append(stop); });
+  const streaming = await workbench.evaluate(async ({tab, url}) => (await chrome.scripting.executeScript({target: {tabId: tab}, func: async expectedURL => {
+    try { await globalThis.keepChat.capture({job: 'stream-test', expectedURL}); return 'unexpected success'; }
+    catch (error) { return error.message; }
+  }, args: [url]}))[0].result, {tab: modern.tab, url: source.url()});
+  assert.match(streaming, /还在生成/);
+  results.push('Cancellation releases capture; streaming replies are blocked');
+  assert.deepEqual(errors, []);
+  await writeFile('output/playwright/test-results.json', JSON.stringify({passed: results, errors}, null, 2));
+  console.log(results.map(result => 'PASS ' + result).join('\n'));
+} catch (error) {
+  console.error('Pages:', context.pages().map(p => p.url()));
+  for (const page of context.pages()) if (page.url().includes('chrome-extension:')) console.error(await page.locator('body').innerText().catch(() => 'unavailable'));
+  throw error;
+} finally { await context.close(); await rm(profile, {recursive: true, force: true}); }

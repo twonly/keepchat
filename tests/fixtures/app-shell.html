@@ -1,0 +1,52 @@
+<style>
+  .contents { display: contents; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; }
+  [data-user-message-bubble] { background: #e8f3ff; border-radius: 24px; padding: 16px; }
+</style>
+<nav><div data-chatgpt-search-unit-key="sidebar:user">SIDEBAR_PRIVATE</div></nav>
+<main data-app-shell-main-surface="browser">
+  <div hidden data-chatgpt-search-unit-key="hidden:assistant">HIDDEN_PRIVATE</div>
+  <div id="conversation">
+    <div data-turn-key="round-1">
+      <div data-talvt-turn-state="complete">
+        <div class="contents">
+          <h4 class="sr-only" data-conversation-role="user">You said:</h4>
+          <div style="display:flex" data-chatgpt-search-unit-key="fallback-turn-0:0:user" data-chatgpt-search-message-ids="user-1">
+            <div style="width:100%;display:flex;flex-direction:column;align-items:flex-end" data-content-search-unit-key="fallback-turn-0:0:user"><div data-user-message-bubble="true" style="max-width:70%;overflow:hidden"><div style="display:flex;flex-direction:column;align-items:flex-end"><div style="width:100%;min-width:0;overflow-wrap:anywhere"><p>用户的问题</p><p>https://example.com/long-conversation-link-with-a-long-path-that-must-wrap-inside-the-original-user-message-bubble</p></div></div></div></div>
+          </div>
+        </div>
+        <div class="contents"><span hidden data-chatgpt-agent-turn-start></span><button>思考了 4m 7s</button></div>
+        <div class="contents">
+          <div data-chatgpt-search-unit-key="fallback-turn-0:2:assistant" data-chatgpt-search-message-ids="assistant-1 assistant-1">
+            <h4 class="sr-only" data-conversation-role="assistant">ChatGPT said:</h4>
+            <div data-markdown-text-style="assistant-message"><div data-dil-response><p>完整的回答</p><table><tr><td>表格内容</td></tr></table><pre><code>const value = 1;
+  console.log(value);</code></pre></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-turn-key="round-2">
+      <div class="contents"><h4 class="sr-only" data-conversation-role="user">You said:</h4><div data-chatgpt-search-unit-key="fallback-turn-1:0:user" data-chatgpt-search-message-ids="user-2"><div data-user-message-bubble="true"><p>第二轮问题</p></div></div></div>
+      <div class="contents"><span hidden data-chatgpt-agent-turn-start></span><button>思考了 12s</button></div>
+      <div class="contents"><div data-chatgpt-search-unit-key="fallback-turn-1:2:assistant" data-chatgpt-search-message-ids="assistant-2"><h4 class="sr-only" data-conversation-role="assistant">ChatGPT said:</h4><p>第二轮回答</p><div style="display:flex;gap:12px"><div style="width:100%;max-width:76px;flex-shrink:0">缩略图</div><div style="flex:1;min-width:0">卡片标题</div></div></div></div>
+    </div>
+    <div data-turn-key="round-3">
+      <div class="contents"><h4 class="sr-only" data-conversation-role="user">You said:</h4><div data-chatgpt-search-unit-key="fallback-turn-2:0:user" data-chatgpt-search-message-ids="user-3"><div data-user-message-bubble="true"><p>生成封面</p></div></div></div>
+      <div class="contents"><span hidden data-chatgpt-agent-turn-start></span><button>已创建图像</button></div>
+      <div class="contents"><h4 class="sr-only" data-conversation-role="assistant">ChatGPT said:</h4><div data-chatgpt-search-message-ids="assistant-3"><div data-testid="generated-image-gallery"><button data-testid="generated-image-preview" aria-label="已生成图像 1"><img alt="已生成图像 1" width="20" height="10"></button></div></div></div>
+    </div>
+  </div>
+</main>
+<script>
+  document.querySelector('img').src = URL.createObjectURL(new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10" fill="green"/></svg>'], {type:'image/svg+xml'}));
+  let remounts = 0;
+  setInterval(() => {
+    const old = document.querySelector('#conversation'), replacement = old.cloneNode(true);
+    for (const unit of replacement.querySelectorAll('[data-chatgpt-search-unit-key]')) {
+      unit.dataset.chatgptSearchUnitKey = unit.dataset.chatgptSearchUnitKey.replace(/fallback-turn-\d+/, `fallback-turn-${remounts + 10}`);
+      unit.dataset.chatgptSearchMessageIds = unit.dataset.chatgptSearchMessageIds.trim().split(/\s+/)[0];
+    }
+    old.replaceWith(replacement);
+    document.body.dataset.remounts = ++remounts;
+  }, 500);
+</script>

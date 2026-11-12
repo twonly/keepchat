@@ -1,0 +1,12 @@
+import {mkdir, rm, copyFile, cp, readFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+const dir = 'dist/keepchat';
+const {version} = JSON.parse(await readFile('manifest.json', 'utf8'));
+await mkdir('dist', {recursive: true});
+await rm(dir, {recursive: true, force: true});
+await mkdir(dir);
+for (const file of ['manifest.json', 'README.md', 'README.en.md', 'PRIVACY.md', 'LICENSE']) await copyFile(file, `${dir}/${file}`);
+for (const folder of ['src', 'icons']) await cp(folder, `${dir}/${folder}`, {recursive: true});
+await rm(`dist/keepchat-${version}.zip`, {force: true});
+execFileSync('zip', ['-qr', `../keepchat-${version}.zip`, '.'], {cwd: dir});
+console.log(`Ready: dist/keepchat-${version}.zip (unzip, then Load unpacked).`);

@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "留存 · ChatGPT 对话导出",
+  "version": "1.0.4",
+  "minimum_chrome_version": "120",
+  "homepage_url": "https://github.com/twonly/keepchat",
+  "description": "把 ChatGPT 对话保存为保留排版的离线 HTML 文件，支持长对话扫描、图片内嵌、Markdown 和 PDF 打印。",
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "留存这段 ChatGPT 对话",
+    "default_icon": {"16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png"}
+  },
+  "icons": {"16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png"},
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://images.openai.com/*",
+    "https://www.google.com/*",
+    "https://*.gstatic.com/*"
+  ]
+}

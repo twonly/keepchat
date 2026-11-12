@@ -1,0 +1,18 @@
+{
+  "name": "keepchat-exporter",
+  "version": "1.0.4",
+  "private": true,
+  "license": "MIT",
+  "repository": {"type": "git", "url": "https://github.com/twonly/keepchat.git"},
+  "homepage": "https://github.com/twonly/keepchat",
+  "bugs": {"url": "https://github.com/twonly/keepchat/issues"},
+  "type": "module",
+  "description": "Local-first ChatGPT conversation snapshots for offline sharing.",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node --test tests/unit.test.mjs",
+    "test:browser": "node tests/browser.mjs && node tests/images.mjs && node tests/detection.mjs && node tests/tables.mjs",
+    "package": "node scripts/package.mjs"
+  },
+  "devDependencies": {"playwright": "1.60.0"}
+}

@@ -1,0 +1,11 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>留存 · KeepChat</title><link rel="stylesheet" href="popup.css"></head>
+<body><main class="popup">
+<header class="brand"><img src="../icons/48.png" width="36" height="36" alt=""><div><strong>留存<span>KEEPCHAT</span></strong><p>让好对话，留得下来。</p></div><span class="version" id="version"></span></header>
+<section class="intro"><span class="eyebrow">A CONVERSATION, KEPT.</span><h1>这段对话，<br>值得好好保存。</h1><p>保留原有文字与排版，<br>变成一个可以分享的离线文件。</p></section>
+<section class="conversation" aria-labelledby="conversationTitle"><div class="section-label"><span class="dot"></span><span id="connectionBadge">正在识别当前页面</span><button type="button" id="refresh" aria-label="重新识别当前对话" title="重新识别">↻</button></div><h2 id="conversationTitle">正在读取…</h2><p id="messageCount">请稍候</p></section>
+<p id="status" class="status" role="status" aria-live="polite">正在检查当前标签页。</p>
+<button class="primary" id="openPreview" type="button" disabled><span id="buttonText">正在识别…</span> <span aria-hidden="true">↗</span></button>
+<a id="openChat" class="open-chat" href="https://chatgpt.com/" target="_blank" rel="noreferrer" hidden>打开 ChatGPT ↗</a>
+<div class="formats"><span>HTML <small>原样分享</small></span><span>PDF <small>打印存档</small></span><span>MD <small>继续编辑</small></span></div>
+<footer><span aria-hidden="true">◈</span> 本机处理 · 无需 API Key · 不上传对话</footer>
+</main><script src="popup.js" type="module"></script></body></html>
