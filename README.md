@@ -1,5 +1,7 @@
 # 留存 · KeepChat
 
+[官网与在线示例](https://www.tokrace.com/zh-CN/tools/keepchat) · [下载趣味示例](https://www.tokrace.com/keepchat/moon-ramen.html)
+
 简体中文 · [English](README.en.md) · [下载最新版本](https://github.com/twonly/keepchat/releases/latest) · [问题反馈](https://github.com/twonly/keepchat/issues)
 
 把一段 ChatGPT 对话，保存成可以离线阅读、直接发送给别人的 HTML 文件。插件使用页面快照保留已呈现的文字与排版，不调用 AI 重新生成正文。
