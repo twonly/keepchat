@@ -1,5 +1,7 @@
 # KeepChat · 留存
 
+[Website & live example](https://www.tokrace.com/en/tools/keepchat) · [Download the fictional example](https://www.tokrace.com/keepchat/moon-ramen.html)
+
 [简体中文](README.md) · English · [Download](https://github.com/twonly/keepchat/releases/latest) · [Report an issue](https://github.com/twonly/keepchat/issues)
 
 Save a rendered ChatGPT conversation as a self-contained HTML file for offline reading and sharing. KeepChat copies visible content and styles; it does not rewrite answers with AI. The extension UI is currently in Simplified Chinese and can preserve conversations in other languages.
