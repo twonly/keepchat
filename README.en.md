@@ -6,13 +6,15 @@
 
 Save a rendered ChatGPT conversation as a self-contained HTML file for offline reading and sharing. KeepChat copies visible content and styles; it does not rewrite answers with AI. The extension UI is currently in Simplified Chinese and can preserve conversations in other languages.
 
+**New in 1.0.5: better exports when ChatGPT unloads offscreen messages in long conversations.** KeepChat scrolls through the current branch, collects each round and deduplicates remounted messages instead of relying only on the content loaded at your starting position. Popup counts are labeled as partial; the preview reports collected totals after scanning. See the [release notes](CHANGELOG.md).
+
 ![KeepChat export workbench with a fictional example conversation](docs/screenshots/workbench.png)
 
 ## Install
 
 Requires Chrome 120+ or Chromium-based Edge.
 
-1. Download `keepchat-1.0.4.zip` from [Releases](https://github.com/twonly/keepchat/releases/latest) and extract it into a permanent folder.
+1. Download the release ZIP from [Releases](https://github.com/twonly/keepchat/releases/latest) and extract it into a permanent folder.
 2. Open `chrome://extensions` (or `edge://extensions`), enable **Developer mode**, and select **Load unpacked**.
 3. Choose the extracted folder containing `manifest.json` and pin KeepChat to the toolbar.
 
@@ -28,7 +30,9 @@ Review the desktop or mobile preview, rename the file if needed, and choose **�
 - **Markdown:** editable text, code and tables; visual fidelity and embedded image support depend on the reader.
 - **PDF:** use **打印 / PDF**, then the browser's **Save as PDF**. Printing changes pagination.
 
-Long conversations are collected by scrolling. Keep the source tab open and do not change its conversation while reading. When an image cannot be fetched, KeepChat can activate the source tab and crop a screenshot of the image; keep that tab active until capture finishes. Press Esc to cancel.
+Long conversations are collected by scrolling. KeepChat activates the source tab during capture and returns to the preview afterward. Keep that tab active and do not change the conversation while reading; a full scan stops with an explicit error if the source goes into the background. When an image cannot be fetched, KeepChat can crop a screenshot of the image. Press Esc to cancel.
+
+Popup counts describe currently loaded page content and can change as ChatGPT mounts and unmounts messages during scrolling. The export preview reports collected totals after scanning. Temporary message identifiers are scoped to their conversation round so reused virtual slots cannot overwrite previous rounds.
 
 This is a static snapshot of the currently rendered branch, not a complete backend backup or a promise of pixel-perfect reproduction. Other branches, unloaded content, attachment files, complex SVG effects and interactive media may not be preserved. Missing resources and incomplete scans are reported when detected. Screenshots preserve displayed resolution rather than recovering original image files.
 
@@ -57,7 +61,7 @@ npm run test:browser
 npm run package
 ```
 
-Packaging uses the system `zip` command on macOS/Linux. `dist/keepchat-1.0.4.zip` contains only extension code, icons, documentation and the license. Tests use fictional fixtures; generated output, local caches and private conversations are excluded from Git and packages.
+Packaging uses the system `zip` command on macOS/Linux. `dist/keepchat-1.0.5.zip` contains only extension code, icons, documentation and the license. Tests use fictional fixtures; generated output, local caches and private conversations are excluded from Git and packages.
 
 For contributions, include a public minimal reproduction and run the relevant checks. Never attach private chats, tokens, cookies or account screenshots to public issues. See [release notes](CHANGELOG.md).
 

@@ -1,5 +1,5 @@
 (() => {
-  if (globalThis.keepChat?.version === 7) return;
+  if (globalThis.keepChat?.version === 10) return;
   const turnSelector = '[data-testid^="conversation-turn-"], [data-message-author-role], [data-message-role], [data-turn="user"], [data-turn="assistant"], [data-chatgpt-search-unit-key], [data-chatgpt-search-message-ids]';
   const bodySelector = '[data-assistant-markdown], [data-user-message], .user-message-bubble';
   const blockedTags = new Set('SCRIPT STYLE LINK META BASE NOSCRIPT TEMPLATE FORM INPUT TEXTAREA SELECT OPTION OBJECT EMBED'.split(' '));
@@ -72,6 +72,7 @@
     const check = () => {
       controller.signal.throwIfAborted();
       if (location.href !== expectedURL) throw new Error('读取期间切换了对话，已停止导出。请在目标对话重新开始。');
+      if (scan && document.hidden) throw new Error('原对话进入后台，已停止读取。请保持原对话标签页在前台，回到预览后点击“重新读取”。');
       if (isStreaming()) throw new Error('读取期间出现了新回复，请等生成结束后重试。');
     };
     const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -151,6 +152,8 @@
           }
         }
         if (name === 'position' && ['fixed', 'sticky'].includes(value)) value = 'static';
+        // Preserve auto/percentage anchors instead of freezing their desktop pixel coordinates.
+        if (!pseudo && ['top', 'right', 'bottom', 'left'].includes(name)) value = source.computedStyleMap().get(name).toString();
         if (name === 'grid-template-columns') value = value.replace(/([\d.]+)px/g, (_, width) => `minmax(0, ${width}fr)`);
         declaration.setProperty(name, value);
       }
@@ -260,10 +263,12 @@
       check();
       for (const root of candidates()) {
         const messageIDs = [...new Set((root.getAttribute('data-chatgpt-search-message-ids') || '').trim().split(/\s+/))].join('|');
-        const stableID = root.getAttribute('data-message-id') || root.getAttribute('data-turn-id') || messageIDs || root.querySelector('[data-message-id]')?.getAttribute('data-message-id') || root.id || root.getAttribute('data-testid') || root.getAttribute('data-chatgpt-search-unit-key');
-        if (!ids.has(root)) ids.set(root, `node-${nextID++}`);
-        const id = stableID || ids.get(root);
+        const stableID = root.getAttribute('data-message-id') || root.getAttribute('data-turn-id') || messageIDs || root.querySelector('[data-message-id]')?.getAttribute('data-message-id');
         const role = roleOf(root), round = root.closest('[data-turn-key]');
+        const localID = root.id || root.getAttribute('data-testid') || root.getAttribute('data-chatgpt-search-unit-key')?.replace(/^fallback-turn-\d+:/, '');
+        if (!ids.has(root)) ids.set(root, `node-${nextID++}`);
+        // Virtualized turns reuse fallback slot numbers; only the round key identifies their place in the conversation.
+        const id = stableID || (round && localID ? `${round.getAttribute('data-turn-key')}:${localID}` : root.id || root.getAttribute('data-testid') || root.getAttribute('data-chatgpt-search-unit-key')) || ids.get(root);
         // The app shell puts the thinking summary beside the first assistant message.
         let thought = role === 'assistant' && round && [...round.querySelectorAll(turnSelector)].find(node => roleOf(node) === 'assistant') === root ? round.querySelector('[data-chatgpt-agent-turn-start]')?.parentElement : null;
         if (thought?.querySelector(turnSelector)) thought = null;
@@ -459,5 +464,5 @@
     }
     return ['p', 'div', 'article', 'section', 'figure'].includes(tag) ? `\n\n${children()}\n\n` : children();
   }
-  globalThis.keepChat = {version: 7, inspect, capture, prepareImage, verifyImage, cancel(job) { if (running?.job === job) running.controller.abort(new Error('已取消读取，可以重新开始。')); }};
+  globalThis.keepChat = {version: 10, inspect, capture, prepareImage, verifyImage, cancel(job) { if (running?.job === job) running.controller.abort(new Error('已取消读取，可以重新开始。')); }};
 })();

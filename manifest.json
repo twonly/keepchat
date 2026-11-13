@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "留存 · ChatGPT 对话导出",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "minimum_chrome_version": "120",
   "homepage_url": "https://github.com/twonly/keepchat",
-  "description": "把 ChatGPT 对话保存为保留排版的离线 HTML 文件，支持长对话扫描、图片内嵌、Markdown 和 PDF 打印。",
+  "description": "导出 ChatGPT 长对话，自动滚动并跨轮次去重，应对屏幕外消息自动卸载；支持离线 HTML、图片内嵌、Markdown 和 PDF 打印。",
   "action": {
     "default_popup": "src/popup.html",
     "default_title": "留存这段 ChatGPT 对话",

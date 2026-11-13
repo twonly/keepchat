@@ -1,6 +1,6 @@
 {
   "name": "keepchat-exporter",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "license": "MIT",
   "repository": {"type": "git", "url": "https://github.com/twonly/keepchat.git"},
@@ -11,7 +11,7 @@
   "scripts": {
     "check": "node scripts/check.mjs",
     "test": "node --test tests/unit.test.mjs",
-    "test:browser": "node tests/browser.mjs && node tests/images.mjs && node tests/detection.mjs && node tests/tables.mjs",
+    "test:browser": "node tests/browser.mjs && node tests/images.mjs && node tests/detection.mjs && node tests/tables.mjs && node tests/virtualization.mjs",
     "package": "node scripts/package.mjs"
   },
   "devDependencies": {"playwright": "1.60.0"}

@@ -56,6 +56,7 @@ async function capture() {
   assets.begin();
   status('正在连接原对话标签页…');
   try {
+    await assets.activateSource();
     await chrome.scripting.executeScript({target: {tabId: sourceTab}, files: ['src/content.js']});
     const [response] = await chrome.scripting.executeScript({target: {tabId: sourceTab}, func: async options => {
       try { return {ok: true, conversation: await globalThis.keepChat.capture(options)}; }

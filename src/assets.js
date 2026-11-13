@@ -22,8 +22,8 @@ function dataURL(blob) {
 }
 
 export function createAssetService({sourceTab, expectedURL, job}) {
-  let controller, queue = Promise.resolve(), lastCapture = 0, windowId, previousTab, screenshotStarted = false;
-  function begin() { controller = new AbortController(); queue = Promise.resolve(); screenshotStarted = false; previousTab = undefined; }
+  let controller, queue = Promise.resolve(), lastCapture = 0, windowId, previousTab, sourceActivated = false;
+  function begin() { controller = new AbortController(); queue = Promise.resolve(); sourceActivated = false; previousTab = undefined; }
   function abort() { controller?.abort(); }
   async function finish() {
     await queue.catch(() => {});
@@ -36,6 +36,18 @@ export function createAssetService({sourceTab, expectedURL, job}) {
     }
   }
   function check() { if (!controller) throw new Error('没有正在进行的导出'); controller.signal.throwIfAborted(); }
+  async function activateSource() {
+    check();
+    if (sourceActivated) return;
+    const tab = await chrome.tabs.get(sourceTab);
+    if (tab.url !== expectedURL || tab.pendingUrl && tab.pendingUrl !== expectedURL) throw new Error('原对话已切换，请回到目标对话重新导出。');
+    windowId = tab.windowId;
+    const [active] = await chrome.tabs.query({active: true, windowId});
+    check();
+    previousTab = active?.id;
+    sourceActivated = true;
+    await chrome.tabs.update(sourceTab, {active: true});
+  }
   async function fetchImage(url) {
     check();
     if (!isAllowedImageURL(url)) throw new Error('这个图片源将使用页面截图');
@@ -64,16 +76,7 @@ export function createAssetService({sourceTab, expectedURL, job}) {
     if (active?.id !== sourceTab || tab.url !== expectedURL || tab.pendingUrl && tab.pendingUrl !== expectedURL) throw new Error('截图时切换了标签页或对话，已停止截图');
   }
   async function screenshot(token) {
-    check();
-    if (!screenshotStarted) {
-      const tab = await chrome.tabs.get(sourceTab);
-      if (tab.url !== expectedURL) throw new Error('原对话已切换，无法截图');
-      windowId = tab.windowId;
-      const [active] = await chrome.tabs.query({active: true, windowId});
-      previousTab = active?.id;
-      screenshotStarted = true;
-      await chrome.tabs.update(sourceTab, {active: true});
-    }
+    await activateSource();
     let canvas, scaleX, scaleY, width, height, y = 0, tiles = 0;
     do {
       let x = 0, nextY = Infinity;
@@ -134,5 +137,5 @@ export function createAssetService({sourceTab, expectedURL, job}) {
     task.then(data => sendResponse({ok: true, data}), error => sendResponse({ok: false, error: error.message}));
     return true;
   }
-  return {begin, abort, finish, handle};
+  return {begin, abort, finish, handle, activateSource};
 }

@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>虚构的多轮对话 - ChatGPT</title>
+<style>
+  body { margin: 0; }
+  main { height: 600px; overflow: auto; }
+  [data-turn-key] { height: 1000px; display: flow-root; }
+  .sr-only { display: none; }
+</style>
+<nav><div data-chatgpt-search-unit-key="sidebar:user">SIDEBAR_PRIVATE</div></nav>
+<main><div id="transcript"></div></main>
+<script>
+  const scroller = document.querySelector('main');
+  const stableIDs = new URL(location.href).searchParams.has('stable');
+  const picture = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10" fill="green"/></svg>');
+  let mounts = 0;
+  for (let i = 0; i < 6; i++) {
+    const round = document.createElement('article');
+    round.dataset.turnKey = `round-${i}`;
+    document.querySelector('#transcript').append(round);
+  }
+  function render() {
+    for (const [i, round] of [...document.querySelectorAll('[data-turn-key]')].entries()) {
+      const visible = i === Math.floor(scroller.scrollTop / 1000);
+      if (!visible) { round.replaceChildren(); continue; }
+      if (round.childElementCount) continue;
+      // The virtualizer reuses a slot and assigns a different slot number after remounting.
+      const slot = mounts++ % 2;
+      round.innerHTML = `<div data-chatgpt-search-unit-key="fallback-turn-${slot}:0:user" ${stableIDs ? `data-chatgpt-search-message-ids="u${i}"` : ''}><p>继续</p></div>
+        <div><span hidden data-chatgpt-agent-turn-start></span><button>思考了 ${i + 1}s</button></div>
+        <div data-chatgpt-search-unit-key="fallback-turn-${slot}:2:assistant" ${stableIDs ? `data-chatgpt-search-message-ids="a${i} a${i}"` : ''}>
+          <p>第 ${i + 1} 轮完整回答</p><table><tr><th>轮次</th><th>内容</th></tr><tr><td>${i + 1}</td><td>保留表格</td></tr></table>
+          ${Array.from({length: i % 2 ? 3 : 1}, (_, image) => `<img alt="第${i + 1}轮图片${image + 1}" width="20" height="10" src="${picture}">`).join('')}
+        </div>`;
+    }
+    document.body.dataset.mounts = mounts;
+  }
+  scroller.addEventListener('scroll', render);
+  render();
+</script>

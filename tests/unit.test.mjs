@@ -30,6 +30,27 @@ test('switching tabs stops screenshots before reading any pixels', async () => {
     await service.finish();
   } finally { delete globalThis.chrome; }
 });
+test('capture activates the source once and restores the preview without overriding a user tab switch', async () => {
+  const url = 'https://chatgpt.com/c/a', updates = [];
+  let active = 4, sourceURL = url;
+  globalThis.chrome = {tabs: {
+    get: async () => ({windowId: 1, url: sourceURL}),
+    query: async () => [{id: active}],
+    update: async id => { active = id; updates.push(id); }
+  }};
+  try {
+    const service = createAssetService({sourceTab: 3, expectedURL: url, job: 'foreground'});
+    service.begin(); await service.activateSource(); await service.activateSource();
+    assert.equal(active, 3); assert.deepEqual(updates, [3]);
+    await service.finish(); assert.equal(active, 4);
+    service.begin(); await service.activateSource(); active = 5;
+    await service.finish(); assert.equal(active, 5);
+    assert.deepEqual(updates, [3, 4, 3]);
+    service.begin(); sourceURL = 'https://chatgpt.com/c/other';
+    await assert.rejects(service.activateSource(), /原对话已切换/);
+    assert.equal(active, 5); await service.finish();
+  } finally { delete globalThis.chrome; }
+});
 const fixture = {title: '标题 </title><script>alert(1)</script>', url: 'https://chatgpt.com/c/test', exportedAt: '2026-11-12T10:00:00Z', width: 720, background: '#fff', color: '#111', css: '.kept-s1::before{content:"</style><script>bad</script>"}', warnings: ['图片 <img onerror="bad">'], messages: [{role: 'user', html: '<p>原文 &amp; 符号</p>', markdown: '原文\n\n```js\n  a\n\n\n  b\n```'}]};
 test('URL boundary rejects misleading hosts and unsafe schemes', () => {
   for (const url of ['https://chatgpt.com/c/a', 'https://chatgpt.com/s/t_a', 'https://chatgpt.com/share/a', 'https://chat.openai.com/c/a']) assert.ok(isChatURL(url));

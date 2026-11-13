@@ -105,9 +105,11 @@ try {
   await offline.screenshot({path: 'output/playwright/offline.png', fullPage: true});
   await offline.setViewportSize({width: 390, height: 844});
   assert.ok(await offline.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+  assert.ok(await offline.locator('[aria-label="right-anchor"]').evaluate(el => Math.abs(el.getBoundingClientRect().right - el.parentElement.getBoundingClientRect().right) < 1));
+  assert.ok(await offline.locator('[aria-label="percentage-anchor"]').evaluate(el => Math.abs(el.getBoundingClientRect().left - el.parentElement.getBoundingClientRect().left - el.parentElement.clientWidth / 2) < 1));
   await offline.screenshot({path: 'output/playwright/offline-mobile.png', fullPage: true});
   await offline.pdf({path: 'output/playwright/example-conversation.pdf', printBackground: true});
-  results.push('Offline file opens with image; mobile fits; Chromium PDF rendering');
+  results.push('Offline file opens with image; mobile fits with responsive absolute-position anchors; Chromium PDF rendering');
   await context.setOffline(false);
   await workbench.locator('#clear').click();
   await workbench.waitForFunction(() => document.querySelector('#title').textContent === '本地预览已清除');

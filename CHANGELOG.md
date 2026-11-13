@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.5 — 2026-11-13
+
+长对话导出增强：应对 ChatGPT 自动卸载屏幕外内容。自动滚动收集当前分支、逐轮合并并去重，明确区分弹窗局部数量与完整扫描后的实际收集总数。
+
+- Scope temporary message identifiers to their conversation round so virtualized, remounted turns cannot overwrite earlier turns.
+- Clarify that popup counts describe currently loaded page content; export preview scans the conversation before reporting collected totals.
+- Keep the source tab active during capture, return to the preview afterward, and stop explicitly if the source goes into the background during a full scan.
+- Preserve responsive position anchors so desktop decorations do not stretch mobile exports beyond the screen.
+- Add browser regression coverage for top, middle and bottom starting positions, stable message IDs and recycled slots, repeated prompts, images, tables and scroll restoration.
+
 ## 1.0.4 — 2026-11-12
 
 Initial public release of KeepChat.

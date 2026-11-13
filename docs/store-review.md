@@ -1,6 +1,8 @@
 # Chrome Web Store review notes
 
-Package: `keepchat-1.0.4.zip`. Primary language: Simplified Chinese. Category: Tools / Productivity, according to the dashboard's available taxonomy. No payments, subscriptions, ads or account with the developer.
+Package: `keepchat-1.0.5.zip`. Primary language: Simplified Chinese. Category: Tools / Productivity, according to the dashboard's available taxonomy. No payments, subscriptions, ads or account with the developer.
+
+Version 1.0.5 improves long-conversation export when ChatGPT unloads offscreen messages: scroll through the current branch, scope temporary IDs to each round, and distinguish partial popup counts from totals collected after scanning. Permissions and data handling are unchanged.
 
 ## Single purpose
 
@@ -21,11 +23,12 @@ Website content and personal communications (the selected conversation) are proc
 ## Test instructions
 
 1. Use Chrome 120+ and open `https://chatgpt.com/`. Use your own ChatGPT account and create a short, non-sensitive conversation with at least two user messages. Ask for a small table and code block; an image is optional. Wait for responses to finish. KeepChat has no separate account, subscription, API key or paywall.
-2. Click the KeepChat toolbar action. The popup should show the conversation title and message count. Click **打开导出预览** (Open export preview).
-3. Wait until **保存为 HTML** (Save as HTML) is enabled. Check the desktop preview and click **手机** for the narrow preview; wide tables scroll horizontally inside the table. **桌面** returns to desktop preview.
+2. Click the KeepChat toolbar action. The popup shows the conversation title and currently loaded message count; this is not the full conversation total. Click **打开导出预览** (Open export preview).
+3. KeepChat opens a preview, switches back to the source tab to scan, and returns to the preview on completion. Keep the source tab active until scanning finishes. Wait until **保存为 HTML** (Save as HTML) is enabled. Check the desktop preview and click **手机** for the narrow preview; wide tables scroll horizontally inside the table. **桌面** returns to desktop preview.
 4. Click **保存为 HTML**, choose a destination, and open the saved file with the network disconnected. Text and successfully embedded images should remain readable. Click **Markdown** to save editable text. **打印 / PDF** opens the browser's print flow.
 5. Reload the workbench tab to restore the local preview. **清除本地预览** deletes that preview. Already downloaded files are not deleted.
 6. Shared conversation pages under `/share/` and `/s/t_…` are also supported when accessible in the browser. Some pages require login or may be unavailable depending on their owner's settings.
-7. During image screenshot fallback, keep the source tab active; Esc cancels. Missing or uncapturable resources are explicitly reported. Other branches, unloaded content, attachment files and dynamic media are outside the static snapshot's scope.
+7. During the entire scan, keep the source tab active; Esc cancels. Switching the source into the background stops a full scan with a retry prompt. Missing or uncapturable resources are explicitly reported. Other branches, content that cannot be loaded during scanning, attachment files and dynamic media are outside the static snapshot's scope.
+8. In a longer conversation, repeat exports starting near the top, middle and bottom. Popup counts can differ because ChatGPT unloads offscreen messages; completed scans should preserve the same accessible current-branch message order. Automated regression fixtures cover recycled identifiers, repeated prompts and remounted turns.
 
 Public screenshots are generated from the fictional [demo](demo.html) in an isolated browser with the real extension. Reproduce with `node scripts/screenshots.mjs` after installing development dependencies and Playwright Chromium. They contain no real user conversation.
